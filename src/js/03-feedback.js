@@ -1,44 +1,58 @@
-import Throttle from 'lodash.throttle';
+import throttle from 'lodash.throttle';
 
-const LOCAL_STORAGE_KEY = 'feedback-form-state';
+//зробити оболонку-згрупувати
+const refs = {
+  form: document.querySelector('.feedback-form'),
+  email: document.querySelector('input[name="email"]'),
+  message: document.querySelector('textarea[name="message"]'),
+};
 
+const STORAGE_KEY = 'feedback-form-state';
 let formData = {
   email: '',
   message: '',
 };
 
-const refs = {
-  email: document.querySelector('input[name="email"]'),
-  message: document.querySelector('textarea[name="message"]'),
-  form: document.querySelector('.feedback-form'),
-};
+populatedMessage();
 
-const updateLocalStorage = Throttle(({ name, value }) => {
-  formData[name] = value;
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formData));
-}, 500);
+//додати прослуховувач
+refs.form.addEventListener('submit', onFormSubmit);
+refs.form.addEventListener('input', throttle(onTextareaInput, 1000));
 
-const onSubmitButtonHandler = e => {
+//Зупиняємо поведінку за замовчуванням   e.preventDefault();
+//Прибираємо повідомлення із сховища  localStorage.removeItem(STORAGE_KEY)
+//очищаємо форму refs.form.reset();
+function onFormSubmit(e) {
   e.preventDefault();
-  refs.email.value = '';
-  refs.message.value = '';
-  localStorage.removeItem(LOCAL_STORAGE_KEY);
+   
+    if (refs.email.value === '' || refs.message.value === '') {
+      return alert('Заповніть, будь ласка, необхідні поля');
+    }
+  
+  e.target.reset(); 
+  localStorage.removeItem(STORAGE_KEY); 
   console.log(formData);
-};
+}
 
-refs.email.addEventListener('input', e => {
-  updateLocalStorage(e.target);
-});
+//Отримуємо значення поля
+//Зберігаємо його в сховищі
+//додати Throttle
+function onTextareaInput() {
+  formData[refs.email.name] = refs.email.value;
+  formData[refs.message.name] = refs.message.value;
 
-refs.message.addEventListener('input', e => {
-  updateLocalStorage(e.target);
-});
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+}
 
-refs.form.addEventListener('submit', onSubmitButtonHandler);
 
-if (localStorage.getItem(LOCAL_STORAGE_KEY) !== null) {
-  formData = JSON.parse(localStorage[LOCAL_STORAGE_KEY]);
-  refs.email.value = formData.email;
-  refs.message.value = formData.message;
+//Отримуємо значення зі сховища при перезавантаженні, втраті зв'язку
+//Якщо там щось було, оновлюємо DOM
+function populatedMessage() {
+  const savedFormData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+
+  if (savedFormData) {
+    refs.message.value = savedFormData.message;
+    refs.email.value = savedFormData.email;
+  }
 }
 
